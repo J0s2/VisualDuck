@@ -49,9 +49,15 @@ def connectDB(sender, app_data, user_data):
         text = dpg.add_input_text(width = 1720, height = 400, multiline = True)
         con = duckdb.connect(database=user_data, check_same_thread=False)
         
-        with dpg.window(label="Results", width = 1720, height = 550, pos=(200,480)):
+        result = dpg.add_window(label="Results", width = 1720, height = 550, pos=(200,480))
 
-                result = dpg.add_text(user_data='')
+                #result = dpg.add_text(user_data='')
+                
+                #result =  dpg.add_table(header_row=False, row_background=True,
+                #            borders_innerH=True, borders_outerH=True, borders_innerV=True,
+                #            borders_outerV=True, delay_search=True)
+
+                    
 
         with dpg.window(label="Status", width = 1720, height = 60, pos=(200,1030), no_close = True):
 
@@ -69,6 +75,30 @@ def createDB(name, path):
     con.close()
     updateMetaDB(name, path)
 
+def showResults(result, output):
+
+    print('pintando tabla en....', result)
+    print(output.values)
+
+    with dpg.table(label = 'tabla', parent = result, header_row=True, row_background=True,
+                            borders_innerH=True, borders_outerH=True, borders_innerV=True,
+                            borders_outerV=True, delay_search=True):        
+
+
+        for column in output:
+        
+            dpg.add_table_column(label=column)
+            
+
+        for i in range(len(output.values)):
+            with dpg.table_row():
+                for j in range(len(output.columns)):
+                    dpg.add_text(output.values[i,j])
+
+
+    
+    print('fin tabla')
+
 
 def runQuery(sender, app_data, user_data):
 
@@ -77,10 +107,12 @@ def runQuery(sender, app_data, user_data):
     
 
     query_start = timer()
-    output = con.execute(q).fetchall()
+    output = con.execute(q).fetch_df_chunk()
     query_end = timer()
 
-    dpg.set_value(result, output)
+    print('mostrar resultados en', result)
+    showResults(result, output)
+    #dpg.set_value(result, output)
     
 
     query_time = (query_end - query_start)
