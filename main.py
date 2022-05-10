@@ -1,3 +1,5 @@
+from email.policy import default
+from tkinter import Scrollbar
 import duckdb
 import dearpygui.dearpygui as dpg
 from timeit import default_timer as timer
@@ -49,7 +51,7 @@ def connectDB(sender, app_data, user_data):
         text = dpg.add_input_text(width = 1720, height = 400, multiline = True)
         con = duckdb.connect(database=user_data, check_same_thread=False)
         
-        result = dpg.add_window(label="Results", width = 1720, height = 550, pos=(200,480))
+        result = dpg.add_window(label="Results", width = 1720, height = 500, pos=(200,480))
 
                 #result = dpg.add_text(user_data='')
                 
@@ -59,7 +61,7 @@ def connectDB(sender, app_data, user_data):
 
                     
 
-        with dpg.window(label="Status", width = 1720, height = 60, pos=(200,1030), no_close = True):
+        with dpg.window(label="Status", width = 1720, height = 110, pos=(200,980), no_close = True, no_scrollbar = False):
 
             status = dpg.add_text(default_value = dpg.get_item_label(sender) + ' connected', user_data='')
 
@@ -80,9 +82,12 @@ def showResults(result, output):
     print('pintando tabla en....', result)
     print(output.values)
 
-    with dpg.table(label = 'tabla', parent = result, header_row=True, row_background=True,
+    if dpg.does_item_exist('tableResult'):
+        dpg.delete_item('tableResult')
+
+    with dpg.table(parent = result, header_row=True, row_background=True,
                             borders_innerH=True, borders_outerH=True, borders_innerV=True,
-                            borders_outerV=True, delay_search=True):        
+                            borders_outerV=True, delay_search=True, tag = 'tableResult'):        
 
 
         for column in output:
@@ -140,17 +145,26 @@ if __name__ == "__main__":
     with dpg.window(label="Databases", width = 200, height = 1080):
 
         addDatabaseUI() # Add databases name
+        dpg.add_spacer()
+        dpg.add_separator()
+       
 
 
 
     # Editor query    
-    with dpg.window(label="Console" ,width = 1720, height = 480, pos=(200,0), no_scrollbar = True):
+    with dpg.window(label="Console" ,width = 1720, height = 480, pos=(200,0), no_scrollbar = True, no_close = True):
 
-        with dpg.tab_bar(reorderable=True, tag = 'tabbar'):
+        tab_bar_query =  dpg.add_tab_bar(reorderable=True, tag = 'tabbar')
 
-            pass
+            
 
-        
+    dpg.show_documentation()
+    dpg.show_style_editor()
+    dpg.show_debug()
+    dpg.show_about()
+    dpg.show_metrics()
+    dpg.show_font_manager()
+    dpg.show_item_registry()
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.start_dearpygui()
