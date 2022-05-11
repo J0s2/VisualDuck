@@ -1,10 +1,9 @@
-from email.policy import default
-from tkinter import Scrollbar
 import duckdb
+from model import *
 import dearpygui.dearpygui as dpg
 from timeit import default_timer as timer
 import pandas as pd
-
+from os.path import exists
 DB = "__main__.duckdb"
 CON = duckdb.connect(database = DB, check_same_thread=False)
 
@@ -13,29 +12,12 @@ connections = {
     'BASE': duckdb.connect(database = DB, check_same_thread=False)
 }
 
-def updateMetaDB(name, path='./'):
-    q = """"
-      INSERT INTO databases VALUES ('{name}', '{path}')
-    """.format(name = name, path = path)
-
-    print(q)
-
-def updateMetaTable(name, db):
-    """
-
-    """
-    q = """
-        INSERT INTO tables VALUES ('{name}', '{db}')
-    """.format(name = name, db = db)
-
-    print(q)
 
 
-def showDataBases(con = CON):
 
-    q = """SELECT database_name, path from databases"""
-    
-    return (con.execute(q).fetchall())
+
+
+
 
 def connectDB(sender, app_data, user_data):
 
@@ -53,14 +35,6 @@ def connectDB(sender, app_data, user_data):
         
         result = dpg.add_window(label="Results", width = 1720, height = 500, pos=(200,480))
 
-                #result = dpg.add_text(user_data='')
-                
-                #result =  dpg.add_table(header_row=False, row_background=True,
-                #            borders_innerH=True, borders_outerH=True, borders_innerV=True,
-                #            borders_outerV=True, delay_search=True)
-
-                    
-
         with dpg.window(label="Status", width = 1720, height = 110, pos=(200,980), no_close = True, no_scrollbar = False):
 
             status = dpg.add_text(default_value = dpg.get_item_label(sender) + ' connected', user_data='')
@@ -69,13 +43,7 @@ def connectDB(sender, app_data, user_data):
    
     print(connections)
     
-def createDB(name, path):
-    """
-        Creates a database on the specified path
-    """
-    con = duckdb.connect(path + name + '.duckdb')
-    con.close()
-    updateMetaDB(name, path)
+
 
 def showResults(result, output):
 
@@ -130,10 +98,26 @@ def addDatabaseUI():
             dpg.add_button(label = database[0], callback = connectDB, parent = "Databases", user_data=database[1])
             
             
-def closeConnections():
 
-    for connector in connections:
-        connections[connector].close()
+
+def file_selector(sender, app_data):
+    print("Sender: ", sender)
+    print("App Data: ", app_data)
+
+    
+    file_path = app_data['file_path_name']
+    name_file = app_data['file_name']
+    name_file = name_file[:name_file.index('.')]
+    
+    print('filefilefile', file_path)
+    print('filefilefile', name_file)
+
+    print(checkDataBaseExists(file_path)[0][0])
+    
+    if not checkDataBaseExists(file_path)[0][0]:
+        print('no existe, hay que crearla')
+        createDB(name_file, file_path)
+        addDatabaseUI()
 
 
 if __name__ == "__main__":
@@ -144,9 +128,21 @@ if __name__ == "__main__":
     # Database List
     with dpg.window(label="Databases", width = 200, height = 1080):
 
+        with dpg.file_dialog(directory_selector=False, show=False, tag="file_dialog_tag",
+                             width=600, height=400, file_count = 1, callback = file_selector,
+                             default_filename=''):
+            #dpg.add_file_extension(".*")
+            #dpg.add_file_extension("", color=(150, 255, 150, 255))
+            dpg.add_file_extension(".db", color=(0, 255, 0, 255))
+            dpg.add_file_extension(".duckdb", color=(0, 255, 0, 255))
+            
+
+
+
         addDatabaseUI() # Add databases name
         dpg.add_spacer()
         dpg.add_separator()
+        dpg.add_button(label="+", callback=lambda: dpg.show_item("file_dialog_tag"))
        
 
 
@@ -158,13 +154,6 @@ if __name__ == "__main__":
 
             
 
-    dpg.show_documentation()
-    dpg.show_style_editor()
-    dpg.show_debug()
-    dpg.show_about()
-    dpg.show_metrics()
-    dpg.show_font_manager()
-    dpg.show_item_registry()
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.start_dearpygui()
@@ -180,8 +169,5 @@ if __name__ == "__main__":
 
     
     
-    ##DEBUG LINES
-    ##showDataBases()
-    ##updateMetaDB('test','./')
-    print('Conexión cerrada')
+    
     closeConnections()
