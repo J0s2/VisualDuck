@@ -12,11 +12,7 @@ connections = {
     'BASE': duckdb.connect(database = DB, check_same_thread=False)
 }
 
-
-
-
-
-
+#2022-05-14: TO-DO. Fix window query.
 
 
 def connectDB(sender, app_data, user_data):
@@ -28,49 +24,40 @@ def connectDB(sender, app_data, user_data):
 
     print(dpg.get_item_label(sender)) # Devuelve el nombre de la base de datos
 
-    with dpg.tab(label = dpg.get_item_label(sender), parent = 'tabbar'):
+    
+    with dpg.tab(label = dpg.get_item_label(sender), parent = 'tabbar', closable=True, tag=str(sender)+'tab'):
 
-        text = dpg.add_input_text(width = 1720, height = 400, multiline = True)
+        text = dpg.add_input_text(width = 1000, height = 350, multiline = True)
         con = duckdb.connect(database=user_data, check_same_thread=False)
-        
-        result = dpg.add_window(label="Results", width = 1720, height = 500, pos=(200,480))
 
-        with dpg.window(label="Status", width = 1720, height = 110, pos=(200,980), no_close = True, no_scrollbar = False):
+        with dpg.child_window(label = "Results", width = 1000, height = 220) as result:
 
-            status = dpg.add_text(default_value = dpg.get_item_label(sender) + ' connected', user_data='')
+            dpg.add_text(default_value='')
 
         dpg.add_button(label = 'Play', callback=runQuery, user_data=[con, text, result, status])
    
-    print(connections)
-    
-
-
 def showResults(result, output):
 
-    print('pintando tabla en....', result)
-    print(output.values)
-
-    if dpg.does_item_exist('tableResult'):
-        dpg.delete_item('tableResult')
+   
+    if dpg.does_item_exist('tableResult'+str(result)):
+        dpg.delete_item('tableResult'+str(result))
 
     with dpg.table(parent = result, header_row=True, row_background=True,
                             borders_innerH=True, borders_outerH=True, borders_innerV=True,
-                            borders_outerV=True, delay_search=True, tag = 'tableResult'):        
+                            borders_outerV=True, delay_search=True, policy=dpg.mvTable_SizingFixedFit, 
+                            resizable=True, no_host_extendX=True,
+                            tag = 'tableResult'+str(result)):        
 
 
         for column in output:
         
-            dpg.add_table_column(label=column)
+            dpg.add_table_column(label=column, width_fixed = True)
             
 
         for i in range(len(output.values)):
             with dpg.table_row():
                 for j in range(len(output.columns)):
                     dpg.add_text(output.values[i,j])
-
-
-    
-    print('fin tabla')
 
 
 def runQuery(sender, app_data, user_data):
@@ -90,12 +77,18 @@ def runQuery(sender, app_data, user_data):
 
     query_time = (query_end - query_start)
     dpg.set_value(status, str(round(query_time, 3)) + 'ms')
+
+def addDataBase(name, path):
+
+    dpg.add_button(label = name, callback = connectDB, parent = 'DataBaseList', user_data = path)
+
+
        
 def addDatabaseUI():
 
     for n, database in enumerate(showDataBases()):
             # Show all Databases. database[0] = name, database[1] = path
-            dpg.add_button(label = database[0], callback = connectDB, parent = "Databases", user_data=database[1])
+            dpg.add_button(label = database[0], callback = connectDB, user_data=database[1])
             
             
 
@@ -109,65 +102,56 @@ def file_selector(sender, app_data):
     name_file = app_data['file_name']
     name_file = name_file[:name_file.index('.')]
     
-    print('filefilefile', file_path)
-    print('filefilefile', name_file)
-
+    
     print(checkDataBaseExists(file_path)[0][0])
     
     if not checkDataBaseExists(file_path)[0][0]:
         print('no existe, hay que crearla')
         createDB(name_file, file_path)
-        addDatabaseUI()
+        addDataBase(name_file, file_path)
+    else:
+        print('Base de datos existente')
+        addDataBase(name_file, file_path)
 
 
 if __name__ == "__main__":
 
     dpg.create_context()
-    dpg.create_viewport(title='VisualDuckDB', width=1920, height=1080)
+    dpg.create_viewport(title='VisualDuckDB', width=1200, height=1080)
 
     # Database List
-    with dpg.window(label="Databases", width = 200, height = 1080):
-
-        with dpg.file_dialog(directory_selector=False, show=False, tag="file_dialog_tag",
-                             width=600, height=400, file_count = 1, callback = file_selector,
-                             default_filename=''):
-            #dpg.add_file_extension(".*")
-            #dpg.add_file_extension("", color=(150, 255, 150, 255))
-            dpg.add_file_extension(".db", color=(0, 255, 0, 255))
-            dpg.add_file_extension(".duckdb", color=(0, 255, 0, 255))
-            
-
-
+    with dpg.window(label="Databases", width = 200, height = 680, tag = 'DataBaseList'):
 
         addDatabaseUI() # Add databases name
-        dpg.add_spacer()
-        dpg.add_separator()
-        dpg.add_button(label="+", callback=lambda: dpg.show_item("file_dialog_tag"))
-       
 
+        with dpg.window(label = "newDataBaseWindow", width = 200, height = 400, pos = (0, 680), tag = 'newDataBaseWindow' ):
 
+            dpg.add_button(label="+", callback=lambda: dpg.show_item("file_dialog_tag"))
+
+            with dpg.file_dialog(directory_selector=False, show=False, tag="file_dialog_tag",
+                                width=600, height=400, file_count = 1, callback = file_selector,
+                                default_filename=''):
+                #dpg.add_file_extension(".*")
+                #dpg.add_file_extension("", color=(150, 255, 150, 255))
+                dpg.add_file_extension(".db", color=(0, 255, 0, 255))
+                dpg.add_file_extension(".duckdb", color=(0, 255, 0, 255))
+            
 
     # Editor query    
-    with dpg.window(label="Console" ,width = 1720, height = 480, pos=(200,0), no_scrollbar = True, no_close = True):
+    with dpg.window(label="Console" ,width = 1720, height = 681, pos=(200,0), no_scrollbar = True, no_close = True, tag = 'xxx'):
 
-        tab_bar_query =  dpg.add_tab_bar(reorderable=True, tag = 'tabbar')
+        tab_bar_query =  dpg.add_tab_bar(reorderable=True, tag = 'tabbar', parent = 'xxx')
+
+        
+
+        with dpg.window(label="Status", width = 1000, height = 110, pos=(200,680), no_close = True, no_scrollbar = False):
+
+            status = dpg.add_text(default_value='')
 
             
 
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.start_dearpygui()
-
-   ##DEBUG LINES 
-
-    # while dpg.is_dearpygui_running():
-    #     jobs = dpg.get_callback_queue() # retrieves and clears queue
-    #     dpg.run_callbacks(jobs)
-    #     dpg.render_dearpygui_frame()
-
     dpg.destroy_context()
-
-    
-    
-    
     closeConnections()

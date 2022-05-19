@@ -19,11 +19,12 @@ def checkDataBaseExists(path):
     return query(q)
 
 def updateMetaDB(name, path='./'):
-    q = """"
-      INSERT INTO databases VALUES ('{name}', '{path}')
+    q = """
+      INSERT INTO databases VALUES ('{name}', '{path}');
     """.format(name = name, path = path)
-
     print(q)
+
+    CON.execute(q)
 
 def updateMetaTable(name, db):
     """
