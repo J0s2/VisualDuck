@@ -3,7 +3,6 @@ from model import *
 import dearpygui.dearpygui as dpg
 from timeit import default_timer as timer
 import pandas as pd
-from os.path import exists
 DB = "__main__.duckdb"
 CON = duckdb.connect(database = DB, check_same_thread=False)
 
@@ -15,19 +14,17 @@ connections = {
 #2022-05-14: TO-DO. Fix window query.
 
 
-def connectDB(sender, app_data, user_data):
-
     
-    print(f"sender is: {sender}")
-    print(f"app_data is: {app_data}")
-    print(f"user_data is: {user_data}")
 
-    print(dpg.get_item_label(sender)) # Devuelve el nombre de la base de datos
-
+def connectDB(sender, app_data, user_data):
     
     with dpg.tab(label = dpg.get_item_label(sender), parent = 'tabbar', closable=True, tag=str(sender)+'tab'):
 
-        text = dpg.add_input_text(width = 1000, height = 350, multiline = True)
+        text = dpg.add_input_text(width = 1000,
+                                 height = 350,
+                                 multiline = True
+        )
+
         con = duckdb.connect(database=user_data, check_same_thread=False)
 
         with dpg.child_window(label = "Results", width = 1000, height = 220) as result:
@@ -51,7 +48,7 @@ def showResults(result, output):
 
         for column in output:
         
-            dpg.add_table_column(label=column, width_fixed = True)
+            dpg.add_table_column(label=column, width_fixed=True)
             
 
         for i in range(len(output.values)):
@@ -70,9 +67,7 @@ def runQuery(sender, app_data, user_data):
     output = con.execute(q).fetch_df_chunk()
     query_end = timer()
 
-    print('mostrar resultados en', result)
     showResults(result, output)
-    #dpg.set_value(result, output)
     
 
     query_time = (query_end - query_start)
@@ -86,7 +81,7 @@ def addDataBase(name, path):
        
 def addDatabaseUI():
 
-    for n, database in enumerate(showDataBases()):
+    for database in showDataBases():
             # Show all Databases. database[0] = name, database[1] = path
             dpg.add_button(label = database[0], callback = connectDB, user_data=database[1])
             
@@ -94,8 +89,6 @@ def addDatabaseUI():
 
 
 def file_selector(sender, app_data):
-    print("Sender: ", sender)
-    print("App Data: ", app_data)
 
     
     file_path = app_data['file_path_name']
@@ -103,14 +96,10 @@ def file_selector(sender, app_data):
     name_file = name_file[:name_file.index('.')]
     
     
-    print(checkDataBaseExists(file_path)[0][0])
-    
     if not checkDataBaseExists(file_path)[0][0]:
-        print('no existe, hay que crearla')
         createDB(name_file, file_path)
         addDataBase(name_file, file_path)
     else:
-        print('Base de datos existente')
         addDataBase(name_file, file_path)
 
 
@@ -148,7 +137,6 @@ if __name__ == "__main__":
 
             status = dpg.add_text(default_value='')
 
-            
 
     dpg.setup_dearpygui()
     dpg.show_viewport()
